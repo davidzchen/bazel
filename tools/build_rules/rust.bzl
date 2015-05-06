@@ -24,11 +24,11 @@ def rust_library_impl(ctx):
 
     # Dependencies
     deps_libs = []
-    deps_flags = " "
+    deps_flags = ""
     for dep in ctx.targets.deps:
         deps_libs += [dep.rust_lib]
         deps_flags += (
-            "--extern " + dep.label.name + "=" + dep.rust_lib.path +
+            " --extern " + dep.label.name + "=" + dep.rust_lib.path +
             " -L dependency=$(dirname " + dep.rust_lib.path + ")"
         )
 
@@ -71,12 +71,12 @@ def rust_binary_impl(ctx):
             main_rs = src.path
 
     # Dependencies
-    deps_flags = " "
+    deps_flags = ""
     deps_libs = []
     for dep in ctx.targets.deps:
         deps_libs += [dep.rust_lib]
         deps_flags += (
-            "--extern " + dep.label.name + "=" + dep.rust_lib.path +
+            " --extern " + dep.label.name + "=" + dep.rust_lib.path +
             " -L dependency=$(dirname " + dep.rust_lib.path + ")"
         )
 
@@ -126,4 +126,11 @@ rust_binary = rule(
     rust_binary_impl,
     executable = True,
     attrs = rust_library_attrs,
+)
+
+rust_test = rule(
+    rust_binary_impl,
+    executable = True,
+    attrs = rust_library_attrs,
+    test = True,
 )
