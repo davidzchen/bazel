@@ -171,6 +171,7 @@ public abstract class RepositoryFunction implements SkyFunction {
     if (createSymbolicLink(buildFilePath, buildFileTarget, env) == null) {
       return null;
     }
+
     return RepositoryValue.createNew(directoryValue, buildFileValue);
   }
 

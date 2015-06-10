@@ -217,6 +217,11 @@ filegroup(
 )
 
 java_import(
+    name = "jgit",
+    jars = ["jgit/org.eclipse.jgit-3.7.1.201504261725-r.jar"],
+)
+
+java_import(
     name = "joda_time",
     jars = ["joda_time/joda-time-2.3.jar"],
 )
@@ -310,6 +315,11 @@ filegroup(
         "hamcrest/hamcrest-core-1.3.jar",
         "junit/junit-4.11.jar",
     ],
+)
+
+java_import(
+    name = "slf4j",
+    jars = ["slf4j/slf4j-api-1.7.2.jar"],
 )
 
 config_setting(
