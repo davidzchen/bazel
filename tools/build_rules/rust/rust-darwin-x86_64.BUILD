@@ -13,13 +13,7 @@ filegroup(
 )
 
 filegroup(
-    name = "rust-lib",
-    srcs = glob([BASE_DIR + "rustc/lib/*.dylib"]),
-    visibility = ["//visibility:public"],
-)
-
-filegroup(
-    name = "rust-rustlib",
+    name = "rustlib",
     srcs = glob([
         BASE_DIR + "rustc/lib/rustlib/x86_64-apple-darwin/lib/*.rlib",
         BASE_DIR + "rustc/lib/rustlib/x86_64-apple-darwin/lib/*.dylib",
