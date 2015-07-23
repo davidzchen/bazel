@@ -132,6 +132,14 @@ def _rust_library_impl(ctx):
   rust_lib = ctx.outputs.rust_lib
   output_dir = rust_lib.dirname
 
+  rust_compiler = ctx.file._rust_compiler
+  #rust_runtime_lib = ctx.file._rust_lib
+  #rust_runtime_rustlib = ctx.file._rust_rustlib
+
+  print("rust_compiler.path " + rust_compiler.path)
+  #print("rust_runtime_lib.path " + rust_runtime_lib.path)
+  #print("rust_runtime_rustlib.path " + rust_runtime_rustlib.path)
+
   # Dependencies
   depinfo = _setup_deps(ctx.attr.deps, ctx.label.name, output_dir)
   features_flags = _get_features_flags(ctx.attr.features)
@@ -145,6 +153,8 @@ def _rust_library_impl(ctx):
       "rustc " + lib_rs +
       " --crate-name " + ctx.label.name +
       " --crate-type lib -g" +
+      " --codegen ar=/usr/bin/ar" +
+      " --codegen cc=/usr/bin/cc" +
       " " + " ".join(features_flags) +
       " --out-dir " + output_dir +
       " --emit=dep-info,link" +
@@ -239,6 +249,12 @@ _rust_common_attrs = {
     "deps": attr.label_list(),
     "features": attr.string_list(),
     "rustc_flags": attr.string_list(),
+    "_rust_compiler": attr.label(
+        default = Label("//tools/rust:rustc"),
+        executable = True,
+        single_file = True),
+    "_rust_lib": attr.label(default = Label("//tools/rust:rust-lib")),
+    "_rust_rustlib": attr.label(default = Label("//tools/rust:rust-rustlib")),
 }
 
 rust_library = rule(
