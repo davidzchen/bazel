@@ -114,9 +114,21 @@ def _get_features_flags(features):
 
 def _build_rustc_command(ctx, crate_type, src, output_dir, depinfo,
                          extra_flags=[]):
+  """
+  Builds the rustc command
+  """
+
+  # Paths to the Rust compiler and standard libraries.
   rustc_path = ctx.file._rustc.path
   rustlib_path = ctx.files._rustlib[0].dirname
 
+  # Paths to cc (for linker) and ar
+  cpp_fragment = ctx.configuration.fragment(cpp)
+  cc = cpp_fragment.compiler_executable
+  #ar = cpp_fragment.ar_executable
+  ar = "/usr/bin/ar"
+
+  # Construct features flags
   features_flags = _get_features_flags(ctx.attr.features)
 
   return " ".join([
@@ -126,8 +138,8 @@ def _build_rustc_command(ctx, crate_type, src, output_dir, depinfo,
       "--crate-name " + ctx.label.name,
       "--crate-type " + crate_type,
       "-g",
-      "--codegen ar=/usr/bin/ar",
-      "--codegen linker=/usr/bin/cc",
+      "--codegen ar=%s" % ar,
+      "--codegen linker=%s" % cc,
       "-L all=" + rustlib_path,
       " ".join(extra_flags),
       " ".join(features_flags),
