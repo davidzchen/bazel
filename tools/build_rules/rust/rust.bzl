@@ -120,6 +120,7 @@ def _build_rustc_command(ctx, crate_type, src, output_dir, depinfo,
 
   # Paths to the Rust compiler and standard libraries.
   rustc_path = ctx.file._rustc.path
+  rustc_lib_path = ctx.files._rustc_lib[0].dirname
   rustlib_path = ctx.files._rustlib[0].dirname
 
   # Paths to cc (for linker) and ar
@@ -137,9 +138,12 @@ def _build_rustc_command(ctx, crate_type, src, output_dir, depinfo,
   # Construct features flags
   features_flags = _get_features_flags(ctx.attr.crate_features)
 
+  print(rustc_lib_path)
+
   return " ".join([
       "set -e;",
       " ".join(depinfo.setup_cmd),
+      "DYLD_LIBRARY_PATH=" + rustc_lib_path,
       rustc_path + " " + src,
       "--crate-name " + ctx.label.name,
       "--crate-type " + crate_type,
@@ -267,6 +271,8 @@ _rust_common_attrs = {
         default = Label("//tools/build_rules/rust:rustc"),
         executable = True,
         single_file = True),
+    "_rustc_lib": attr.label(
+        default = Label("//tools/build_rules/rust:rustc_lib")),
     "_rustlib": attr.label(default = Label("//tools/build_rules/rust:rustlib")),
 }
 
