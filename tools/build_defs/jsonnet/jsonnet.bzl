@@ -19,7 +19,7 @@ JSONNET_FILETYPE = FileType([".jsonnet"])
 def _collect_transitive_sources(deps):
   """Collects all source files of the target and transitive dependencies."""
   source_files = set(order="compile")
-  for dep in deps
+  for dep in deps:
     source_files += dep.transitive_jsonnet_files
   return source_files
 
@@ -30,24 +30,24 @@ def _jsonnet_library_impl(ctx):
                 transitive_jsonnet_files = sources)
 
 def _jsonnet_toolchain(ctx):
-  jsonnet_path = ctx.file._jsonnet_path
   return struct(
-      jsonnet_path = jsonnet_path,
-      lib_search_flags = ["-J %s" % ctx.file._std])
+      jsonnet_path = ctx.file._jsonnet.path,
+      lib_search_flags = ["-J %s" % ctx.file._std.dirname])
 
 def _jsonnet_to_json_impl(ctx):
   """Implementation of the jsonnet_to_json rule."""
   transitive_sources = _collect_transitive_sources(ctx.attr.deps)
   toolchain = _jsonnet_toolchain(ctx)
   compiled_json = ctx.outputs.compiled_json
-  command = [
-      "set -e;",
-      toolchain.jsonnet_path,
-      toolchain.lib_search_flags,
-      "-J .",
-      ctx.file.src,
-      "> %s" % compiled_json.path
-  ]
+  command = (
+      [
+          "set -e;",
+          toolchain.jsonnet_path,
+      ] + toolchain.lib_search_flags + [
+          "-J .",
+          ctx.file.src.path,
+          "> %s" % compiled_json.path
+      ])
 
   compile_inputs = (
       [
@@ -65,8 +65,8 @@ def _jsonnet_to_json_impl(ctx):
       progress_message = "Compiling Jsonnet to JSON for " + ctx.label.name);
 
 _jsonnet_common_attrs = {
-    "src": attr.label_list(allow_files = JSONNET_FILETYPE,
-                           single_file = True),
+    "src": attr.label(allow_files = JSONNET_FILETYPE,
+                      single_file = True),
     "deps": attr.label_list(providers = ["transitive_jsonnet_files"],
                             allow_files = False),
     "_jsonnet": attr.label(
