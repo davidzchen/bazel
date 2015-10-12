@@ -105,6 +105,90 @@ def _jsonnet_to_json_impl(ctx):
       use_default_shell_env = True,
       progress_message = "Compiling Jsonnet to JSON for " + ctx.label.name);
 
+EXIT_CODE_COMPARE_COMMAND = """
+EXIT_CODE=$?
+EXPECTED_EXIT_CODE=%d
+if [ $EXIT_CODE -ne $EXPECTED_EXIT_CODE ] ; then
+  echo "FAIL (exit code): %s"
+  echo "Expected: $EXPECTED_EXIT_CODE"
+  echo "Actual: $EXIT_CODE"
+  echo "Output: $OUTPUT"
+  exit 1
+fi
+"""
+
+DIFF_COMMAND = """
+GOLDEN=$(cat %s)
+if [ "$OUTPUT" != "$GOLDEN" ]; then
+  echo "FAIL (output mismatch): %s"
+  echo "Diff:"
+  diff <(echo $GOLDEN) <(echo $OUTPUT)
+  echo "Expected: $GOLDEN"
+  echo "Actual: $OUTPUT"
+  exit 1
+fi
+"""
+
+REGEX_DIFF_COMMAND = """
+GOLDEN_REGEX=$(cat %s)
+if [[ ! "$OUTPUT" =~ $GOLDEN_REGEX ]]; then
+  echo "FAIL (regex mismatch): %s"
+  echo "Output: $OUTPUT"
+  exit 1
+fi
+"""
+
+def _jsonnet_test_impl(ctx):
+  """Implementation of the jsonnet_test rule."""
+  depinfo = _setup_deps(ctx.attr.deps)
+  toolchain = _jsonnet_toolchain(ctx)
+
+  golden_files = []
+  diff_command = ""
+  if ctx.file.golden != None:
+    golden_files += [ctx.file.golden]
+    if ctx.attr.regex == False:
+      diff_command += DIFF_COMMAND % (ctx.file.golden.short_path,
+                                      ctx.label.name)
+    else:
+      diff_command += REGEX_DIFF_COMMAND % (ctx.file.golden.short_path,
+                                            ctx.label.name)
+
+  jsonnet_vars = ctx.attr.vars
+  jsonnet_code_vars = ctx.attr.code_vars
+  jsonnet_command = " ".join(
+      ["OUTPUT=$(%s" % ctx.file._jsonnet.short_path] +
+      ["-J %s/%s" % (ctx.label.package, im) for im in ctx.attr.imports] +
+      ["-J %s" % im for im in depinfo.imports] +
+      toolchain.imports +
+      ["-J ."] +
+      ["--var %s=%s"
+          % (var, jsonnet_vars[var]) for var in jsonnet_vars.keys()] +
+      ["--code-var %s=%s"
+          % (var, jsonnet_code_vars[var]) for var in jsonnet_vars.keys()] +
+      [
+          ctx.file.src.path,
+          "2>&1)",
+      ])
+
+  command = "\n".join([
+      "#!/bin/bash",
+      jsonnet_command,
+      EXIT_CODE_COMPARE_COMMAND % (ctx.attr.error, ctx.label.name),
+      diff_command])
+
+  ctx.file_action(output = ctx.outputs.executable,
+                  content = command,
+                  executable = True);
+
+  test_inputs = (
+      [ctx.file.src, ctx.file._jsonnet, ctx.file._std] +
+      golden_files +
+      list(depinfo.transitive_sources))
+
+  return struct(
+      runfiles = ctx.runfiles(files = test_inputs, collect_data = True))
+
 _jsonnet_common_attrs = {
     "deps": attr.label_list(providers = ["transitive_jsonnet_files"],
                             allow_files = False),
@@ -136,4 +220,21 @@ _jsonnet_to_json_attrs = {
 jsonnet_to_json = rule(
     _jsonnet_to_json_impl,
     attrs = _jsonnet_to_json_attrs + _jsonnet_common_attrs,
+)
+
+_jsonnet_test_attrs = {
+    "src": attr.label(allow_files = JSONNET_FILETYPE,
+                      single_file = True),
+    "golden": attr.label(allow_files = True, single_file = True),
+    "error": attr.int(),
+    "regex": attr.bool(),
+    "vars": attr.string_dict(),
+    "code_vars": attr.string_dict(),
+}
+
+jsonnet_test = rule(
+    _jsonnet_test_impl,
+    attrs = _jsonnet_test_attrs + _jsonnet_common_attrs,
+    executable = True,
+    test = True,
 )
