@@ -250,14 +250,16 @@ public class SkylarkRuleClassFunctions {
        @Param(name = "host_fragments", type = SkylarkList.class, generic1 = String.class,
            defaultValue = "[]",
            doc = "List of names of configuration fragments that the rule requires "
-           + "in host configuration.")},
+           + "in host configuration."),
+       @Param(name = "doc", type = String.class, defaultValue = "''",
+           doc = "Documentation string describing this Skylark rule")},
       useAst = true, useEnvironment = true)
   private static final BuiltinFunction rule = new BuiltinFunction("rule") {
     @SuppressWarnings({"rawtypes", "unchecked"}) // castMap produces
     // an Attribute.Builder instead of a Attribute.Builder<?> but it's OK.
     public BaseFunction invoke(BaseFunction implementation, Boolean test, Object attrs,
         Object implicitOutputs, Boolean executable, Boolean outputToGenfiles, SkylarkList fragments,
-        SkylarkList hostFragments, FuncallExpression ast, Environment funcallEnv)
+        SkylarkList hostFragments, String doc, FuncallExpression ast, Environment funcallEnv)
         throws EvalException, ConversionException {
       funcallEnv.checkLoadingPhase("rule", ast.getLocation());
       RuleClassType type = test ? RuleClassType.TEST : RuleClassType.NORMAL;

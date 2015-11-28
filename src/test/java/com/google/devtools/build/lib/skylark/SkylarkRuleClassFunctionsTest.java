@@ -255,8 +255,9 @@ public class SkylarkRuleClassFunctionsTest extends SkylarkTestCase {
   @Test
   public void testAttrDefaultValueBadType() throws Exception {
     checkErrorContains(
-        "Method attr.string(*, default: string, mandatory: bool, values: sequence of strings) "
-            + "is not applicable for arguments (int, bool, list): 'default' is int, "
+        "Method attr.string(*, default: string, mandatory: bool, values: sequence of strings, "
+            + "doc: string) "
+            + "is not applicable for arguments (int, bool, list, string): 'default' is int, "
             + "but should be string",
         "attr.string(default = 1)");
   }
@@ -314,9 +315,10 @@ public class SkylarkRuleClassFunctionsTest extends SkylarkTestCase {
   @Test
   public void testLateBoundAttrWorksWithOnlyLabel() throws Exception {
     checkEvalError(
-        "Method attr.string(*, default: string, mandatory: bool, values: sequence of strings) "
-            + "is not applicable for arguments (function, bool, list): 'default' is function, "
-            + "but should be string",
+        "Method attr.string(*, default: string, mandatory: bool, values: sequence of strings, "
+            + "doc: string) "
+            + "is not applicable for arguments (function, bool, list, string): 'default' is "
+            + "function, but should be string",
         "def attr_value(cfg): return 'a'",
         "attr.string(default=attr_value)");
   }
@@ -326,6 +328,19 @@ public class SkylarkRuleClassFunctionsTest extends SkylarkTestCase {
   @Test
   public void testRuleAddAttribute() throws Exception {
     evalAndExport("def impl(ctx): return None", "r1 = rule(impl, attrs={'a1': attr.string()})");
+    RuleClass c = ((RuleFunction) lookup("r1")).getRuleClass();
+    assertTrue(c.hasAttr("a1", Type.STRING));
+  }
+  @Test
+
+  public void testRuleWithDocAddAttribute() throws Exception {
+    evalAndExport(
+        "def impl(ctx): return None",
+        "r1 = rule(impl, ",
+        "    doc = 'test rule',",
+        "    attrs = {",
+        "        'a1': attr.string()",
+        "    })");
     RuleClass c = ((RuleFunction) lookup("r1")).getRuleClass();
     assertTrue(c.hasAttr("a1", Type.STRING));
   }
