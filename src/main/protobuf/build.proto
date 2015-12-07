@@ -133,6 +133,7 @@ message Attribute {
     UNKNOWN = 18;            // unknown type, use only for build extensions
     LABEL_DICT_UNARY = 19;   // label_dict_unary_value
     SELECTOR_LIST = 20;      // selector_list
+    NAME = 21;               // name, used only for name attribute
   }
 
   // Values for the TriState field type.

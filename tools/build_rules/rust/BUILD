@@ -1,9 +1,16 @@
 package(default_visibility = ["//visibility:public"])
 
+load("//tools/build_defs/skylark:skylark.bzl", "skylark_library")
+
 filegroup(
     name = "srcs",
     srcs = glob(["**"]),
     visibility = ["//tools:__pkg__"],
+)
+
+skylark_library(
+    name = "rust",
+    srcs = ["rust.bzl"],
 )
 
 config_setting(
