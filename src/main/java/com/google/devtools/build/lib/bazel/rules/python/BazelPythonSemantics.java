@@ -26,9 +26,13 @@ import com.google.devtools.build.lib.rules.cpp.CcLinkParamsStore;
 import com.google.devtools.build.lib.rules.python.PyCommon;
 import com.google.devtools.build.lib.rules.python.PythonSemantics;
 import com.google.devtools.build.lib.rules.test.InstrumentedFilesCollector.InstrumentationSpec;
+import com.google.devtools.build.lib.syntax.Type;
 import com.google.devtools.build.lib.util.FileTypeSet;
+import com.google.devtools.build.lib.vfs.PathFragment;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Functionality specific to the Python rules in Bazel.
@@ -63,6 +67,26 @@ public class BazelPythonSemantics implements PythonSemantics {
     return ImmutableList.copyOf(sources);
   }
 
+  private List<String> getImportsDirsFromImportsAttribute(RuleContext ruleContext) {
+    List<String> result = new ArrayList<>();
+    PathFragment packageFragment = ruleContext.getLabel().getPackageIdentifier().getPathFragment();
+    for (String importsAttr : ruleContext.attributes().get("imports", Type.STRING_LIST)) {
+      importsAttr = ruleContext.expandMakeVariables("includes", importsAttr);
+      if (importsAttr.startsWith("/")) {
+        ruleContext.attributeWarning("imports",
+            "ignoring invalid absolute path '" + importsAttr + "'");
+        continue;
+      }
+      PathFragment importsPath = packageFragment.getRelative(importsAttr).normalize();
+      if (!importsPath.isNormalized()) {
+        ruleContext.attributeError("imports",
+            "Path references a path above the execution root.");
+      }
+      result.add(importsPath.toString());
+    }
+    return result;
+  }
+
   @Override
   public void createExecutable(RuleContext ruleContext, PyCommon common,
       CcLinkParamsStore ccLinkParamsStore) {
@@ -76,13 +100,15 @@ public class BazelPythonSemantics implements PythonSemantics {
       default: throw new IllegalStateException();
     }
 
+    List<String> imports = getImportsDirsFromImportsAttribute(ruleContext);
     ruleContext.registerAction(new TemplateExpansionAction(
         ruleContext.getActionOwner(),
         common.getExecutable(),
         STUB_TEMPLATE,
         ImmutableList.of(
             Substitution.of("%main%", main),
-            Substitution.of("%python_binary%", pythonBinary)),
+            Substitution.of("%python_binary%", pythonBinary),
+            Substitution.of("%imports%", String.join(":", imports))),
         true));
   }
 

@@ -20,6 +20,7 @@ import static com.google.devtools.build.lib.packages.BuildType.LABEL;
 import static com.google.devtools.build.lib.packages.BuildType.LABEL_LIST;
 import static com.google.devtools.build.lib.packages.BuildType.TRISTATE;
 import static com.google.devtools.build.lib.syntax.Type.STRING;
+import static com.google.devtools.build.lib.syntax.Type.STRING_LIST;
 
 import com.google.devtools.build.lib.Constants;
 import com.google.devtools.build.lib.analysis.BaseRuleClasses;
@@ -87,6 +88,10 @@ public final class BazelPyRuleClasses {
           // 2to3 is itself written in Python and depends on many libraries.
           .add(attr("$python2to3", LABEL).cfg(HOST).exec()
               .value(env.getLabel(Constants.TOOLS_REPOSITORY + "//tools/python:2to3")))
+          /* <!-- #BLAZE_RULE($base_py).ATTRIBUTE(imports) -->
+          List of import dirs to be added to the <code>PYTHONPATH</code>.
+          <!-- #END_BLAZE_RULE.ATTRIBUTE --> */
+          .add(attr("imports", STRING_LIST))
           .setPreferredDependencyPredicate(PyRuleClasses.PYTHON_SOURCE)
           .build();
     }
