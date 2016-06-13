@@ -13,6 +13,11 @@
 # limitations under the License.
 """Rules for configuring the C++ toolchain (experimental)."""
 
+load(
+    "@bazel_tools//tools/cpp:configure_util.bzl",
+    "find_cc",
+    "get_cxx_inc_directories",
+)
 
 def _get_value(it):
   """Convert `it` in serialized protobuf format."""
@@ -93,7 +98,6 @@ def _cplus_include_paths(repository_ctx):
   else:
     return []
 
-
 def _get_cpu_value(repository_ctx):
   """Compute the cpu_value based on the OS name."""
   os_name = repository_ctx.os.name.lower()
@@ -106,40 +110,6 @@ def _get_cpu_value(repository_ctx):
   # Use uname to figure out whether we are on x86_32 or x86_64
   result = repository_ctx.execute(["uname", "-m"])
   return "k8" if result.stdout.strip() in ["amd64", "x86_64", "x64"] else "piii"
-
-
-_INC_DIR_MARKER_BEGIN = "#include <...>"
-
-# OSX add " (framework directory)" at the end of line, strip it.
-_OSX_FRAMEWORK_SUFFIX = " (framework directory)"
-_OSX_FRAMEWORK_SUFFIX_LEN =  len(_OSX_FRAMEWORK_SUFFIX)
-def _cxx_inc_convert(path):
-  """Convert path returned by cc -E xc++ in a complete path."""
-  path = path.strip()
-  if path.endswith(_OSX_FRAMEWORK_SUFFIX):
-    path = path[:-_OSX_FRAMEWORK_SUFFIX_LEN].strip()
-  return path
-
-def _get_cxx_inc_directories(repository_ctx, cc):
-  """Compute the list of default C++ include directories."""
-  result = repository_ctx.execute([cc, "-E", "-xc++", "-", "-v"])
-  index1 = result.stderr.find(_INC_DIR_MARKER_BEGIN)
-  if index1 == -1:
-    return []
-  index1 = result.stderr.find("\n", index1)
-  if index1 == -1:
-    return []
-  index2 = result.stderr.rfind("\n ")
-  if index2 == -1 or index2 < index1:
-    return []
-  index2 = result.stderr.find("\n", index2 + 1)
-  if index2 == -1:
-    inc_dirs = result.stderr[index1 + 1:]
-  else:
-    inc_dirs = result.stderr[index1 + 1:index2].strip()
-
-  return [repository_ctx.path(_cxx_inc_convert(p))
-          for p in inc_dirs.split("\n")]
 
 def _add_option_if_supported(repository_ctx, cc, option):
   """Checks that `option` is supported by the C compiler."""
@@ -199,7 +169,7 @@ def _crosstool_content(repository_ctx, cc, cpu_value, darwin):
               # "-Wl,--detect-odr-violations"
           ]) + _ld_library_paths(repository_ctx),
       "ar_flag": ["-static", "-s", "-o"] if darwin else [],
-      "cxx_builtin_include_directory": _get_cxx_inc_directories(repository_ctx, cc),
+      "cxx_builtin_include_directory": get_cxx_inc_directories(repository_ctx, cc),
       "objcopy_embed_flag": ["-I", "binary"],
       "unfiltered_cxx_flag":
           _add_option_if_supported(repository_ctx, cc, "-fno-canonical-system-headers") + [
@@ -272,24 +242,6 @@ def _dbg_content():
   return {"compiler_flag": "-g"}
 
 
-def _find_cc(repository_ctx):
-  """Find the C++ compiler."""
-  cc_name = "gcc"
-  if "CC" in repository_ctx.os.environ:
-    cc_name = repository_ctx.os.environ["CC"].strip()
-    if not cc_name:
-      cc_name = "gcc"
-  if cc_name.startswith("/"):
-    # Absolute path, maybe we should make this suported by our which function.
-    return cc_name
-  cc = repository_ctx.which(cc_name)
-  if cc == None:
-    fail(
-        "Cannot find gcc, either correct your path or set the CC" +
-        " environment variable")
-  return cc
-
-
 def _tpl(repository_ctx, tpl, substitutions={}, out=None):
   if not out:
     out = tpl
@@ -325,7 +277,7 @@ def _impl(repository_ctx):
     repository_ctx.symlink(msvc_wrapper, "wrapper/bin")
   else:
     darwin = cpu_value == "darwin"
-    cc = _find_cc(repository_ctx)
+    cc = find_cc(repository_ctx)
     tool_paths = _get_tool_paths(repository_ctx, darwin,
                                  "cc_wrapper.sh" if darwin else str(cc))
     crosstool_content = _crosstool_content(repository_ctx, cc, cpu_value, darwin)
