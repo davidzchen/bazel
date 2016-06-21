@@ -226,6 +226,34 @@ public class SkylarkRepositoryIntegrationTest extends BuildViewTestCase {
   }
 
   @Test
+  public void testSkylarkRepositoryTemplateError() throws Exception {
+    scratch.file(
+        "bar/baz/BUILD.tpl",
+        "filegroup(name='{target}', srcs=['foo.txt'], path='{path}')");
+    scratch.file("bar/baz/foo.txt", "foo");
+    scratch.file("bar/BUILD");
+    scratch.file(
+        "bar/def.bzl",
+        "def _impl(repository_ctx):",
+        "  repository_ctx.template('bar/BUILD', Label('//bar:baz/BUILD.tpl'), "
+            + "{'{target}': 'bar', '{path}': 'foo'})",
+        "",
+        "repo = repository_rule(",
+        "    implementation=_impl,",
+        "    local=True)");
+    scratch.file(rootDirectory.getRelative("BUILD").getPathString());
+    scratch.overwriteFile(
+        rootDirectory.getRelative("WORKSPACE").getPathString(),
+        "local_repository(name='repo2', path='/repo2')",
+        "load('//bar:def.bzl', 'repo')",
+        "repo(name='foo')");
+    invalidatePackages();
+    ConfiguredTarget target = getConfiguredTarget("@foo//bar");
+    Object path = target.getTarget().getAssociatedRule().getAttributeContainer().getAttr("path");
+    assertThat(path).isEqualTo("foo");
+  }
+
+  @Test
   public void testSkylarkRepositoryName() throws Exception {
     // Variation of the template rule to test the repository_ctx.name field.
     scratch.file("/repo2/bar.txt", "filegroup(name='bar', srcs=['foo.txt'], path='{path}')");
