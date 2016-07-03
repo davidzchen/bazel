@@ -14,6 +14,9 @@
 package com.google.devtools.build.docgen.skylark;
 
 import com.google.devtools.build.lib.skylarkinterface.Param;
+import com.google.devtools.build.lib.skylarkinterface.ParamType;
+
+import java.lang.StringBuilder;
 
 /**
  * A class containing the documentation for a Skylark method parameter.
@@ -38,7 +41,19 @@ public final class SkylarkParamDoc extends SkylarkDoc {
    */
   public String getType() {
     if (param.type().equals(Object.class)) {
-      return "";
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < param.allowedTypes().length; i++) {
+        ParamType paramType = param.allowedTypes()[i];
+        if (paramType.generic1().equals(Object.class)) {
+          sb.append(getTypeAnchor(paramType.type()));
+        } else {
+          sb.append(getTypeAnchor(paramType.type(), paramType.generic1()));
+        }
+        if (i < param.allowedTypes().length - 1) {
+          sb.append("; or ");
+        }
+      }
+      return sb.toString();
     }
     if (param.generic1().equals(Object.class)) {
       return getTypeAnchor(param.type());
