@@ -44,6 +44,7 @@ import com.google.devtools.build.lib.packages.Package;
 import com.google.devtools.build.lib.packages.RawAttributeMapper;
 import com.google.devtools.build.lib.shell.ShellUtils;
 import com.google.devtools.build.lib.shell.ShellUtils.TokenizationException;
+import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
@@ -617,23 +618,35 @@ public final class SkylarkRuleContext {
     return true;
   }
 
-  @SkylarkCallable(doc =
-        "Returns a string after expanding all references to \"Make variables\". The variables "
+  @SkylarkCallable(
+    doc = "<p>Returns a string after expanding all references to \"Make variables\". The variables "
       + "must have the following format: <code>$(VAR_NAME)</code>. Also, <code>$$VAR_NAME"
-      + "</code> expands to <code>$VAR_NAME</code>. Parameters:"
-      + "<ul><li>The name of the attribute (<code>string</code>). It's only used for error "
-      + "reporting.</li>\n"
-      + "<li>The expression to expand (<code>string</code>). It can contain references to "
-      + "\"Make variables\".</li>\n"
-      + "<li>A mapping of additional substitutions (<code>dict</code> of <code>string</code> : "
-      + "<code>string</code>).</li></ul>\n"
-      + "Examples:"
+      + "</code> expands to <code>$VAR_NAME</code>.</p>"
+      + "<p>Examples:</p>"
       + "<pre class=language-python>\n"
       + "ctx.expand_make_variables(\"cmd\", \"$(MY_VAR)\", {\"MY_VAR\": \"Hi\"})  # == \"Hi\"\n"
       + "ctx.expand_make_variables(\"cmd\", \"$$PWD\", {})  # == \"$PWD\"\n"
       + "</pre>"
-      + "Additional variables may come from other places, such as configurations. Note that "
-      + "this function is experimental.")
+      + "<p>Additional variables may come from other places, such as configurations. Note that "
+      + "this function is experimental.</p>",
+    parameters = {
+      @Param(
+        name = "attributeName",
+        type = String.class,
+        doc = "The name of the attribute. It is only used for error reporting."
+      ),
+      @Param(
+        name = "command",
+        type = String.class,
+        doc = "The expression to expand. It can contain references to \"Make variables\"."
+      ),
+      @Param(
+        name = "additionalSubstitutions",
+        type = SkylarkDict.class,
+        doc = "A mapping of additional substitutions."
+      )
+    }
+  )
   public String expandMakeVariables(String attributeName, String command,
       final Map<String, String> additionalSubstitutions) {
     return ruleContext.expandMakeVariables(attributeName,
@@ -656,7 +669,7 @@ public final class SkylarkRuleContext {
   }
 
   @SkylarkCallable(name = "info_file", structField = true, documented = false,
-      doc = "Returns the file that is used to hold the non-volatile workspace status for the " 
+      doc = "Returns the file that is used to hold the non-volatile workspace status for the "
           + "current build request.")
   public Artifact getStableWorkspaceStatus() {
     return ruleContext.getAnalysisEnvironment().getStableWorkspaceStatusArtifact();

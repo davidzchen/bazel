@@ -13,10 +13,13 @@
 // limitations under the License.
 package com.google.devtools.build.docgen.skylark;
 
+import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.util.StringUtilities;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A class representing a Java method callable from Skylark with annotation.
@@ -26,6 +29,7 @@ public final class SkylarkJavaMethodDoc extends SkylarkMethodDoc {
   private final String name;
   private final Method method;
   private final SkylarkCallable callable;
+  private List<SkylarkParamDoc> params;
 
   public SkylarkJavaMethodDoc(SkylarkModuleDoc module, Method method,
       SkylarkCallable callable) {
@@ -35,6 +39,8 @@ public final class SkylarkJavaMethodDoc extends SkylarkMethodDoc {
         : callable.name();
     this.method = method;
     this.callable = callable;
+    this.params = new ArrayList<>();
+    processParams();
   }
 
   public Method getMethod() {
@@ -62,10 +68,21 @@ public final class SkylarkJavaMethodDoc extends SkylarkMethodDoc {
   }
 
   @Override
+  public List<SkylarkParamDoc> getParams() {
+    return params;
+  }
+
+  @Override
   public String getReturnTypeExtraMessage() {
     if (callable.allowReturnNones()) {
       return " May return <code>None</code>.\n";
     }
     return "";
+  }
+
+  private void processParams() {
+    for (Param param : callable.parameters()) {
+      params.add(new SkylarkParamDoc(this, param));
+    }
   }
 }

@@ -38,6 +38,12 @@ public @interface SkylarkCallable {
   String doc() default "";
 
   /**
+   * List of parameters for calling this method if this method to be considered as a method (if
+   * {@link #structField()} is false.
+   */
+  Param[] parameters() default {};
+
+  /**
    * If true, the function will appear in the Skylark documentation. Set this to false if the
    * function is experimental or an overloading and doesn't need to be documented.
    */
