@@ -17,6 +17,40 @@ def _clone_or_update(repository_ctx):
   if ((ctx.attr.tag == "" and ctx.attr.commit == "") or
       (ctx.attr.tag != "" and ctx.attr.commit != "")):
     ctx.fail("Exactly one of commit and tag must be provided")
+  if ctx.attr.commit != "":
+    ref = ctx.attr.commit
+  else:
+    ref = "tags/" + ctx.attr.tag
+
+  st = ctx.execute(["bash", '-c', """
+set -ex
+( cd {working_dir} &&
+    if ! ( cd '{dir}' && git rev-parse --git-dir ) >/dev/null 2>&1; then
+      rm -rf '{dir}'
+      git clone '{remote}' '{dir}'
+    fi
+    cd '{dir}'
+    git reset --hard {ref} || (git fetch && git reset --hard {ref})
+    git clean -xdf )
+  """.format(
+    working_dir=ctx.path(".").dirname,
+    dir=ctx.path("."),
+    remote=ctx.attr.remote,
+    ref=ref,
+  )])
+  if st.return_code != 0:
+    fail("error cloning %s:\n%s" % (ctx.name, st.stderr))
+  if ctx.attr.init_submodules:
+    st = ctx.execute(["bash", '-c', """
+set -ex
+(   cd '{dir}'
+    git submodule update --init --checkout --force )
+  """.format(
+    dir=ctx.path("."),
+    )])
+    if st.return_code != 0:
+      fail("error updating submodules %s:\n%s" % (ctx.name, st.stderr))
+
 
 def _new_git_repository_impl(repository_ctx):
   if ((ctx.attr.build_file == None and ctx.attr.build_file_content == '') or
