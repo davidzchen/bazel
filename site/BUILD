@@ -1,4 +1,5 @@
 load("//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
+load("//site:version.bzl", "DOCS_VERSION")
 
 exports_files(
     [
@@ -37,6 +38,7 @@ filegroup(
             "command-line-reference-prefix.html",
             "command-line-reference-suffix.html",
             "site/README.md",
+            "version.bzl",
         ] + DOT_GRAPH_HTML_FILES,
     ),
 )
@@ -140,7 +142,8 @@ genrule(
            "$(location :skylark-rule-docs) " +
            "$(location //src/main/java/com/google/devtools/build/lib:gen_buildencyclopedia) " +
            "$(location //src/main/java/com/google/devtools/build/lib:gen_skylarklibrary) " +
-           "$(location //src/main/java/com/google/devtools/build/lib:gen_command-line-reference)"),
+           "$(location //src/main/java/com/google/devtools/build/lib:gen_command-line-reference) " +
+           DOCS_VERSION),
     tools = [
         "jekyll-tree.sh",
     ],

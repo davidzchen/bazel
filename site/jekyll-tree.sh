@@ -34,6 +34,8 @@ shift
 readonly SL_ZIP=${PWD}/$1
 shift
 readonly CLR_HTML=${PWD}/$1
+shift
+readonly VERSION=$1
 
 # Create temporary directory that is removed when this script exits.
 readonly TMP=$(mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXXXX")
@@ -43,7 +45,6 @@ trap "rm -rf ${TMP}" EXIT
 # TODO: Create a variant of this script for cutting versions of documentation
 # for Bazel releases. For that case, consider extracting the Git branch or tag
 # name to be used as the versioned directory name.
-readonly VERSION="master"
 readonly VERSION_DIR="$OUT_DIR/versions/$VERSION"
 
 # Unpacks the base Jekyll tree, Build Encyclopedia, Skylark Library, and
